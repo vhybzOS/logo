@@ -56,11 +56,18 @@ shadow_filter = draw.Filter(id='petal-shadow')
 shadow_filter.append(draw.FilterItem('feGaussianBlur', in='SourceAlpha', stdDev=SHADOW_BLUR_STD_DEV))
 # Offset the blurred alpha to create the shadow shape
 shadow_filter.append(draw.FilterItem('feOffset', dx=SHADOW_OFFSET_X, dy=SHADOW_OFFSET_Y, result='shadow'))
+# Color the shadow. feFlood fills with a color, feComposite "multiplies" it with the shadow shape.
+shadow_color_item = draw.FilterItem('feFlood', **draw.types.normalize_attribute_name('flood-color'):SHADOW_COLOR})
+shadow_color_item_composite = draw.FilterItem('feComposite', in2='shadow', operator='in') # Use 'in' to keep the color only where the shadow alpha is
+shadow_filter.extend([shadow_color_item, shadow_color_item_composite]) # Add these after blur and offset
+
+
 # Combine the shadow with the original graphic.
 # feMergeNode in="shadow" draws the shadow.
 # feMergeNode in="SourceGraphic" draws the original shape on top.
 merge_nodes = draw.FilterItem('feMerge')
-merge_nodes.append(draw.FilterItem('feMergeNode', in='shadow'))
+# It's better to reference the output of the composite color+alpha operation for the shadow
+merge_nodes.append(draw.FilterItem('feMergeNode', in='shadow_colored')) # Need a name for the colored shadow output
 merge_nodes.append(draw.FilterItem('feMergeNode', in='SourceGraphic'))
 shadow_filter.append(merge_nodes)
 
